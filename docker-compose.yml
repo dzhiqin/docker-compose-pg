@@ -33,6 +33,7 @@ services:
     volumes:
       - ./:/src
       - /src/node_modules
+      - ./logs:/src/logs
 volumes:
   db:
     driver: local

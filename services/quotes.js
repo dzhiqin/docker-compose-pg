@@ -2,20 +2,6 @@ const db = require('./db');
 const helper = require('../helper');
 const config = require('../config');
 
-class SuccessRes {
-  constructor({data}){
-    this.data=data || null,
-    this.message='success',
-    this.resultCode=0
-  }
-}
-class FailRes {
-  constructor({msg}){
-    this.data=null,
-    this.message=msg || 'fail',
-    this.resultCode=1
-  }
-}
 async function getMultiple(page = 1) {
   const offset = helper.getOffset(page, config.listPerPage);
   const rows = await db.query(
@@ -28,7 +14,26 @@ async function getMultiple(page = 1) {
   return {
     data,
     meta
+  }  
+}
+async function getQuotesByPage(req) {
+  let {page = 1,pageSize = 10} = req.query
+  page=parseInt(page)
+  pageSize=parseInt(pageSize)
+  const offset = helper.getOffset(page, pageSize)
+  const countRes = await db.query('SELECT COUNT(*) FROM quote')
+  const total = parseInt(countRes.rows[0].count)
+  const result = await db.query(
+    'SELECT id, quote, author FROM quote OFFSET $1 LIMIT $2',
+    [offset, pageSize]
+  )
+  const data = {
+    list: helper.emptyOrRows(result.rows),
+    page,
+    pageSize,
+    total
   }
+  return data
 }
 
 function validateCreate(quote) {
@@ -59,7 +64,6 @@ function validateCreate(quote) {
   if (messages.length) {
     let error = new Error(messages.join());
     error.statusCode = 400;
-
     throw error;
   }
 }
@@ -69,65 +73,60 @@ function normalizeValue(value) {
   }
   return value;
 }
-async function create(body){
+async function create(req){
+  const {body} = req
   validateCreate(body);
-
   // const result = await db.query(
   //   'INSERT INTO quote(quote, author) VALUES ($1, $2) RETURNING *',
   //   [quote.quote, quote.author]
   // );
-
   const assigns = Object.keys(body);
   const values = Object.values(body).map((value) => normalizeValue(value));
-  console.log('values',values);
-  
   const result = await db.query(
     `INSERT INTO quote (${assigns}) VALUES (${values})`
   )
-  console.log('create result',result);
-  return new SuccessRes({})
+  return result.rows
 }
-async function findOne(body){
+async function findOneById(req){
+  const {params:{id}} = req
   const res = await db.query(
     'select * from quote where id=$1',
-    [body.id]
+    [id]
   )
-  console.log('find one',res);
+  if(!res.rows.length){
+    let error = new Error('quote does not exit')
+    error.statusCode = 400
+    throw error
+  }
+  return res.rows[0]
   
-  const data = helper.emptyOrRows(res.rows)
-  // const data = helper.emptyOrRows(rows);
-  return new SuccessRes({data})
 }
-async function update(id,body){
+async function updateById(req){
   // const result = await db.query(
   //   'UPDATE quote SET quote=$1, author=$2 WHERE id=$3',
   //   [quote,author,id]
   // )
   // const item = await db.query
+  const {params:{id},body} = req
   const assigns = Object.keys(body)
   const values = assigns.map((key) => `${key}=${normalizeValue(body[key])}`).join(', ');
   const result = await db.query(
     `UPDATE quote SET ${values} WHERE id=${id}`
   )
-  if(result.rowCount == 0){
-     return new FailRes({msg:'no record'})
-  }else{
-    return new SuccessRes({})
-  }
+  return result.rows
 }
-async function remove(id) {
+async function deleteById(req) {
+  const {params: {id}} = req
   const result = await db.query(
     'DELETE FROM quote WHERE id=$1',[id]
   )
-  if(result.rowCount === 0){
-    return new FailRes({msg: 'record not find'})
-  }
-  return new SuccessRes({})
+  return result.rows
 }
 module.exports = {
   getMultiple,
   create,
-  findOne,
-  update,
-  remove
+  findOneById,
+  updateById,
+  deleteById,
+  getQuotesByPage
 }

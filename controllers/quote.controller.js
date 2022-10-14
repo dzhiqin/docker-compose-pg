@@ -1,21 +1,58 @@
-const Fail = require('./tool')
-
+const {FailRes} = require('../libs/index')
 const quotes = require('../services/quotes')
 
-const  getAll = async (req,res,next) => {
+const returnError = (res,err) => {
+  res.status(err.statusCode || 500).json(new FailRes({message: err+''}))
+}
+const  getQuotes = async (req,res,next) => {
   try{
-    // res.json(await quotes.getMultiple(req,query.page))
-    next(await quotes.getMultiple(req,query.page))
+    const result = await quotes.getQuotesByPage(req)
+    res.data = result
+    next()
   }catch(err){
-    returnErrorRes()
+    returnError(res,err)
   }
 }
-const returnResponse = (req,res) => {
-
+const getQuote = async (req,res,next) => {
+  try{
+    const result = await quotes.findOneById(req)
+    res.data = result
+    next()
+  }catch(err){
+    returnError(res,err)
+  }
 }
-const returnErrorRes = (err,res) => {
-  res.status(err.statusCode || 500).json(new FailRes())
+const updateQuote = async (req,res,next) => {
+  try{
+    const result = await quotes.updateById(req)
+    res.data = result
+    next()
+  }catch(err){  
+    returnError(res,err)
+  }
+}
+const deleteQuote = async (req,res,next) => {
+  try{
+    const result = await quotes.deleteById(req)
+    res.data = result
+    next()
+  }catch(err){
+    returnError(res,err)
+  }
+}
+const createQuote = async (req,res,next) => {
+  try{
+    const result = await quotes.create(req)
+    res.data = result
+    next()
+  }catch(err){
+    returnError(res,err)
+  }
 }
 module.exports = {
-  getAll
+  getQuotes,
+  getQuote,
+  updateQuote,
+  deleteQuote,
+  createQuote
 }

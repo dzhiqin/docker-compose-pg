@@ -5,8 +5,9 @@ class resultObj {
     this.resultCode=0
   }
 }
-export class FailRes extends resultObj{
+class FailRes extends resultObj{
   constructor(params){
+    super()
     if(params){
       const {data,message} = params
       this.data=data || null
@@ -15,8 +16,9 @@ export class FailRes extends resultObj{
     }
   }
 }
-export class SuccessRes extends resultObj{
+class SuccessRes extends resultObj{
   constructor(params){
+    super()
     if(params){
       const {data,message} = params
       this.data=data || null
@@ -24,4 +26,8 @@ export class SuccessRes extends resultObj{
       this.resultCode=0
     }
   }
+}
+module.exports = {
+  FailRes,
+  SuccessRes
 }
